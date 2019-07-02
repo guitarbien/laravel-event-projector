@@ -13,6 +13,9 @@ abstract class AggregateRoot
     /** @var array */
     private $recordedEvents = [];
 
+    /** @var int */
+    private $version = 0;
+
     public static function retrieve(string $uuid, int $storedEventId = null): AggregateRoot
     {
         $aggregateRoot = (new static());
@@ -35,7 +38,8 @@ abstract class AggregateRoot
     {
         call_user_func(
             [$this->getStoredEventModel(), 'storeMany'],
-            $this->getAndClearRecordedEvents(),
+            $this->getAndClearRecoredEvents(),
+            $this->version,
             $this->aggregateUuid
         );
 
@@ -58,11 +62,11 @@ abstract class AggregateRoot
 
     private function reconstituteFromEvents(int $storedEventId = null): AggregateRoot
     {
-        $this->getStoredEventModel()::uuid($this->aggregateUuid)
-              ->endingTo($storedEventId)
-              ->each(function (StoredEvent $storedEvent) {
-                  $this->apply($storedEvent->event);
-              });
+        $this->getStoredEventModel()::uuid($this->aggregateUuid)->each(function (StoredEvent $storedEvent) {
+            $this->apply($storedEvent->event);
+
+            $this->version = $storedEvent->version;
+        });
 
         return $this;
     }

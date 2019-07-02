@@ -178,4 +178,28 @@ final class AggregateRootTest extends TestCase
 
         $this->assertEquals(300, $aggregateRoot->balance);
     }
+
+    public function persisting_only_the_first_success_in_concurrency()
+    {
+        $accountOne = AccountAggregateRoot::retrieve($this->aggregateUuid);
+        $accountTwo = AccountAggregateRoot::retrieve($this->aggregateUuid);
+
+        $accountOne->addMoney(100)
+                   ->persist();
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        $accountTwo->addMoney(100)
+                   ->persist();
+
+        $storedEvents = StoredEvent::get();
+        $this->assertCount(1, $storedEvents);
+
+        $storedEvent = $storedEvents->first();
+        $this->assertEquals($this->aggregateUuid, $storedEvent->aggregate_uuid);
+
+        $event = $storedEvent->event;
+        $this->assertInstanceOf(MoneyAdded::class, $event);
+        $this->assertEquals(100, $event->amount);
+    }
 }
