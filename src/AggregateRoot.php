@@ -38,7 +38,7 @@ abstract class AggregateRoot
     {
         call_user_func(
             [$this->getStoredEventModel(), 'storeMany'],
-            $this->getAndClearRecoredEvents(),
+            $this->getAndClearRecordedEvents(),
             $this->version,
             $this->aggregateUuid
         );
